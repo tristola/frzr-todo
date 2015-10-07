@@ -583,6 +583,7 @@
         done: false
       });
       input.$el.value = '';
+      input.$el.focus();
     }
 
     function clearDone() {
