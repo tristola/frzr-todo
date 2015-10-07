@@ -512,38 +512,50 @@
   var starttime;
 
   function debug(root, target) {
+    // listen to 'render' event and remember time
     renderer.on('render', function () {
       starttime = Date.now();
     });
+    // listen to 'rendered' event and log render time
     renderer.on('rendered', function () {
       target.textContent = 'Rendering took ' + (Date.now() - starttime) + ' ms';
     });
   }
 
   function title(root, target) {
+    // h1
     var view = new View('h1', { textContent: 'Todo' });
+    // p
     var notice = new View('p', { textContent: '(items stay between refreshes)', style: {
         fontStyle: 'italic'
       } });
 
+    // mount elements
     view.mount(target);
     notice.mount(target);
   }
 
+  // Choose some of these for placeholder
   var whattodo = ['Buy milk', 'Feed cat', 'Go fishing', 'Pay rent', 'Watch a movie', 'Learn to cook'];
 
+  // shuffle
   shuffle(whattodo);
 
   function todocreate(root, target) {
+    // Container
     var view = new View('div', {
       'class': 'todo-create'
     });
+
+    // Form
     var form = new View('form', { listen: {
         submit: createTodo
       } });
+
+    // elements
     var title = new View('h2', { textContent: 'What to do?' });
     var input = new View('input', { attrs: { autofocus: true, placeholder: whattodo[0] } });
-    var createbutton = new View('button', { textContent: 'Insert' });
+    var insertbutton = new View('button', { textContent: 'Insert' });
     var clearbutton = new View('button', { textContent: 'Clear done', listen: {
         click: clearDone
       } });
@@ -551,43 +563,56 @@
         click: clearAll
       } });
 
+    // mount all
+
     form.mount(target);
     view.mount(form.$el);
     title.mount(form.$el);
     input.mount(form.$el);
-    createbutton.mount(form.$el);
+    insertbutton.mount(form.$el);
     clearbutton.mount(target);
     clearallbutton.mount(target);
 
-    function createTodo() {
+    // actions
+
+    function createTodo(e) {
+      e.preventDefault();
       root.trigger('todo-create', {
         id: Date.now(),
         title: input.$el.value,
         done: false
       });
+      input.$el.value = '';
     }
 
     function clearDone() {
       clearbutton.$el.blur();
       root.trigger('todo-clear');
     }
+
     function clearAll() {
       clearallbutton.$el.blur();
       root.trigger('todo-clearall');
     }
   }
 
+  // extend View
   var TodoItem = View.extend('li', { 'class': 'todoitem', listen: { click: switchDone }, init: init, update: update });
 
+  // init function, executed when View is added
   function init() {
     var self = this;
 
+    // checkbox + title
     this.checkbox = new View('input', { attrs: { type: 'checkbox' }, parent: self });
     this.title = new View('span');
 
+    // mount elements
     this.checkbox.mount(this.$el);
     this.title.mount(this.$el);
   }
+
+  // actions
 
   function switchDone() {
     this.data.done = !this.data.done;
@@ -605,8 +630,14 @@
   var todoitems = JSON.parse(localStorage.getItem('todoitems')) || [];
 
   function todoitems$1(root, target) {
+    // container
     var view = new Views(TodoItem, 'ul', { 'class': 'todoitems', root: root });
     view.reset(todoitems, 'id');
+
+    // mount
+    view.mount(target);
+
+    // listeners
 
     root.on('todo-create', function (todoitem) {
       todoitems.push(todoitem);
@@ -638,8 +669,6 @@
       view.reset(todoitems, 'id');
       localStorage.setItem('todoitems', JSON.stringify([]));
     });
-
-    view.mount(target);
   }
 
   var $rendertime = document.getElementById('rendertime');
