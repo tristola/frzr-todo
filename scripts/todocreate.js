@@ -41,19 +41,21 @@ export default function (root, target) {
 
   // actions
 
-  function createTodo () {
+  function createTodo (e) {
+    e.preventDefault()
     root.trigger('todo-create', {
       id: Date.now(),
       title: input.$el.value,
       done: false
     })
+    input.$el.value = ''
   }
 
   function clearDone () {
     clearbutton.$el.blur()
     root.trigger('todo-clear')
   }
-  
+
   function clearAll () {
     clearallbutton.$el.blur()
     root.trigger('todo-clearall')
