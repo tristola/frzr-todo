@@ -2,14 +2,26 @@
 import {View} from 'frzr'
 
 // extend View
-export default View.extend('li', {class: 'todoitem', listen: {click: switchDone}, init: init, update: update})
+export default View.extend('li', {
+  class: 'todoitem', 
+  listen: {
+    click: switchDone
+  }, 
+  init: init, 
+  update: update
+})
 
 // init function, executed when View is added
 function init () {
   var self = this
 
   // checkbox + title
-  this.checkbox = new View('input', {attrs: {type: 'checkbox'}, parent: self})
+  this.checkbox = new View('input', {
+    attrs: {
+      type: 'checkbox'
+    }, 
+    parent: self
+  })
   this.title = new View('span')
 
   // mount elements
