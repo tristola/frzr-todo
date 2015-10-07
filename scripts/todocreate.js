@@ -49,6 +49,10 @@ export default function (root, target) {
       done: false
     })
     input.$el.value = ''
+    shuffle(whattodo)
+    input.setAttributes({
+      placeholder: whattodo[0]
+    })
     input.$el.focus()
   }
 
