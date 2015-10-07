@@ -1,7 +1,7 @@
 # FRZR todo
 Simple example how to create a project with [FRZR](https://frzr.js.org) view library.
 
-## FRZR
+## FRZR?
 Check out the [FRZR project site](https://frzr.js.org)
 
 ## live demo
