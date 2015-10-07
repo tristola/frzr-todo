@@ -76,4 +76,7 @@ form {
   display: inline-block;
   padding-bottom: 0.75rem;
 }
+.todoitem input:checked + span {
+  text-decoration: line-through;
+}
 @import 'https://fonts.googleapis.com/css?family=Cabin:400,500,400italic,500italic,600,600italic|Roboto:400,400italic';
