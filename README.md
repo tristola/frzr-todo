@@ -4,6 +4,9 @@ Simple example how to create a project with [FRZR](https://frzr.js.org) view lib
 ## live demo
 http://pakastin.github.io/frzr-todo/
 
+## source
+Script source here: https://github.com/pakastin/frzr-todo/tree/master/scripts
+
 ## install
 Fork or download, go in the folder and run:
 ```
