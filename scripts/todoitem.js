@@ -20,9 +20,6 @@ function switchDone () {
 
 function update (data) {
   this.title.textContent(data.title)
-  this.setClass({
-    done: this.data.done
-  })
   this.checkbox.setAttributes({
     checked: data.done
   })
