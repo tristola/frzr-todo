@@ -1,6 +1,9 @@
 # FRZR todo
 Simple example how to create a project with [FRZR](https://frzr.js.org) view library.
 
+## FRZR
+Check out the [FRZR project site](https://frzr.js.org)
+
 ## live demo
 http://pakastin.github.io/frzr-todo/
 
