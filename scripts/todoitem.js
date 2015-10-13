@@ -2,12 +2,13 @@
 import {View} from 'frzr'
 
 // extend View
-export default View.extend('li', {
-  class: 'todoitem', 
+export default View.extend({
+  el: 'li',
+  class: 'todoitem',
   listen: {
     click: switchDone
-  }, 
-  init: init, 
+  },
+  init: init,
   update: update
 })
 
@@ -16,17 +17,18 @@ function init () {
   var self = this
 
   // checkbox + title
-  this.checkbox = new View('input', {
+  self.checkbox = new View({
+    el: 'input',
     attrs: {
       type: 'checkbox'
-    }, 
+    },
     parent: self
   })
-  this.title = new View('span')
+  self.title = new View({el: 'span'})
 
   // mount elements
-  this.checkbox.mount(this.$el)
-  this.title.mount(this.$el)
+  self.checkbox.mount(self.$el)
+  self.title.mount(self.$el)
 }
 
 // actions

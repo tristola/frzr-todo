@@ -9,25 +9,49 @@ shuffle(whattodo)
 
 export default function (root, target) {
   // Container
-  var view = new View('div', {
+  var view = new View({
+    el: 'div',
     class: 'todo-create'
   })
 
   // Form
-  var form = new View('form', {listen: {
-    submit: createTodo
-  }})
+  var form = new View({
+    el: 'form',
+    listen: {
+      submit: createTodo
+    }
+  })
 
   // elements
-  var title = new View('h2', {textContent: 'What to do?'})
-  var input = new View('input', {attrs: {autofocus: true, placeholder: whattodo[0]}})
-  var insertbutton = new View('button', {textContent: 'Insert'})
-  var clearbutton = new View('button', {textContent: 'Clear done', listen: {
-    click: clearDone
-  }})
-  var clearallbutton = new View('button', {textContent: 'Clear all', listen: {
-    click: clearAll
-  }})
+  var title = new View({
+    el: 'h2',
+    textContent: 'What to do?'
+  })
+  var input = new View({
+    el: 'input',
+    attrs: {
+      autofocus: true,
+      placeholder: whattodo[0]
+    }
+  })
+  var insertbutton = new View({
+    el: 'button',
+    textContent: 'Insert'
+  })
+  var clearbutton = new View({
+    el: 'button',
+    textContent: 'Clear done',
+    listen: {
+      click: clearDone
+    }
+  })
+  var clearallbutton = new View({
+    el: 'button',
+    textContent: 'Clear all',
+    listen: {
+      click: clearAll
+    }
+  })
 
   // mount all
 
@@ -43,12 +67,15 @@ export default function (root, target) {
 
   function createTodo (e) {
     e.preventDefault()
-    root.trigger('todo-create', {
+    var newTodo = {
       id: Date.now(),
       title: input.$el.value || whattodo[0],
       done: false
-    })
+    }
+    root.trigger('todo-create', newTodo)
+
     input.$el.value = ''
+
     shuffle(whattodo)
     input.setAttributes({
       placeholder: whattodo[0]

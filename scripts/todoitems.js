@@ -7,8 +7,9 @@ var todoitems = JSON.parse(localStorage.getItem('todoitems')) || []
 
 export default function (root, target) {
   // container
-  var view = new Views(TodoItem, 'ul', {
-    class: 'todoitems', 
+  var view = new Views(TodoItem, {
+    el: 'ul',
+    class: 'todoitems',
     root: root
   })
   view.reset(todoitems, 'id')
