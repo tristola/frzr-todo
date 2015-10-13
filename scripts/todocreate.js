@@ -45,7 +45,7 @@ export default function (root, target) {
     e.preventDefault()
     root.trigger('todo-create', {
       id: Date.now(),
-      title: input.$el.value,
+      title: input.$el.value || whattodo[0],
       done: false
     })
     input.$el.value = ''
