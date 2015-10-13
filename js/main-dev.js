@@ -579,7 +579,7 @@
       e.preventDefault();
       root.trigger('todo-create', {
         id: Date.now(),
-        title: input.$el.value,
+        title: input.$el.value || whattodo[0],
         done: false
       });
       input.$el.value = '';
@@ -602,14 +602,26 @@
   }
 
   // extend View
-  var TodoItem = View.extend('li', { 'class': 'todoitem', listen: { click: switchDone }, init: init, update: update });
+  var TodoItem = View.extend('li', {
+    'class': 'todoitem',
+    listen: {
+      click: switchDone
+    },
+    init: init,
+    update: update
+  });
 
   // init function, executed when View is added
   function init() {
     var self = this;
 
     // checkbox + title
-    this.checkbox = new View('input', { attrs: { type: 'checkbox' }, parent: self });
+    this.checkbox = new View('input', {
+      attrs: {
+        type: 'checkbox'
+      },
+      parent: self
+    });
     this.title = new View('span');
 
     // mount elements
@@ -636,7 +648,10 @@
 
   function todoitems$1(root, target) {
     // container
-    var view = new Views(TodoItem, 'ul', { 'class': 'todoitems', root: root });
+    var view = new Views(TodoItem, 'ul', {
+      'class': 'todoitems',
+      root: root
+    });
     view.reset(todoitems, 'id');
 
     // mount
