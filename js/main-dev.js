@@ -3,6 +3,8 @@
 (function () {
   'use strict';
 
+  // This is just a very basic inheritable Observable class, like node.js's but with jQuery's API style
+
   function Observable() {
     this.listeners = {};
   }
@@ -12,7 +14,7 @@
     this.listeners[name].push({
       once: once || false,
       cb: cb,
-      ctx: ctx || this
+      ctx: ctx
     });
   };
 
@@ -20,7 +22,7 @@
     this.on(name, cb, ctx, true);
   };
 
-  Observable.prototype.off = function (name, cb) {
+  Observable.prototype.off = function (name, cb, ctx) {
     if (typeof name === 'undefined') {
       this.listeners = {};
       return;
@@ -34,6 +36,13 @@
       return;
     }
     for (var i = 0, len = listeners.length; i < len; i++) {
+      if (ctx) {
+        if (listeners[i].ctx === ctx) {
+          listeners.splice(i--, 1);
+          len--;
+        }
+        continue;
+      }
       if (listeners[i].cb === cb) {
         listeners.splice(i--, 1);
         len--;
@@ -45,6 +54,9 @@
     var listeners = this.listeners[name];
     var len = arguments.length - 1;
     var args = new Array(len);
+
+    // V8 optimization
+    // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#3-managing-arguments
 
     for (var i = 0; i < len; i++) {
       args[i] = arguments[i + 1];
@@ -67,6 +79,7 @@
   };
 
   function element(type, attrs) {
+    // Just a simple helper for creating DOM elements
     var $el = document.createElement(type);
 
     if (typeof attrs !== 'undefined') {
@@ -79,6 +92,7 @@
   }
 
   function SVGelement(type, attrs) {
+    // Just a simple helper for creating SVG DOM elements
     var $el = document.createElementNS('http://www.w3.org/2000/svg', type);
 
     if (typeof attrs !== 'undefined') {
@@ -91,6 +105,7 @@
   }
 
   var ticking = [];
+  // very simple polyfill for requestAnimationFrame
   var requestAnimationFrame = window.requestAnimationFrame || function (cb) {
     setTimeout(cb, 1000 / 60);
   };
@@ -98,7 +113,9 @@
   var renderer = new Observable();
 
   function batchAnimationFrame(cb) {
+    // batchAnimationFrame collects multiple requestAnimationFrame calls to a single call
     if (!ticking.length) {
+      // render cycle starts
       renderer.trigger('render');
       requestAnimationFrame(tick);
     }
@@ -111,6 +128,7 @@
       cbs[i]();
     }
     if (ticking.length === 0) {
+      // render cycle ends
       renderer.trigger('rendered');
       return;
     }
@@ -177,55 +195,80 @@
     });
   }
 
-  function View(type, options, data) {
+  function View(options) {
+    var isView = this instanceof View;
+    if (!isView) {
+      return new View(options);
+    }
     var svg = options && options.svg || false;
 
     View['super'].call(this); // init Observable
 
-    this.$el = svg ? SVGelement(type) : element(type);
+    this.$el = svg ? SVGelement(options.el || 'svg') : element(options.el || 'div');
     this.attrs = {};
     this['class'] = {};
     this.data = {};
     this.style = {};
 
-    options && this.setOptions(options);
+    options && this.setOptions(options, true);
     this.trigger('init', this);
-    data && this.set(data);
+    options.data && this.set(options.data);
     this.trigger('inited', this);
   }
 
   inherits(View, Observable);
 
-  View.extend = function (superType, superOptions) {
-    return function ExtendedView(type, options) {
+  View.extend = function (superOptions) {
+    return function ExtendedView(options) {
       if (!options) {
-        return new View(type || superType, superOptions);
+        return new View(superOptions);
       }
       var currentOptions = {};
 
       for (var key in superOptions) {
         currentOptions[key] = superOptions[key];
       }
-
       for (key in options) {
         currentOptions[key] = options[key];
       }
-      return new View(type || superType, currentOptions);
+      return new View(currentOptions);
     };
   };
 
   View.prototype.mount = function (target) {
     var self = this;
-    var $el = self.$el;
 
-    self.$root = target;
+    if (self.parent) {
+      // If already have parent, remove parent listeners first
+      self.parent.off('mount', onParentMount, self);
+      self.parent.off('mounted', onParentMounted, self);
+    }
+
+    if (target instanceof View) {
+      self.parent = target;
+      self.$root = target.$el;
+    } else {
+      self.$root = target;
+    }
 
     batchAnimationFrame(function () {
+      if (self.parent) {
+        self.parent.on('mount', onParentMount, self);
+        self.parent.on('mounted', onParentMounted, self);
+      }
       self.trigger('mount');
-      target.appendChild($el);
+      self.$root.appendChild(self.$el);
       self.trigger('mounted');
     });
   };
+
+  function onParentMount() {
+    this.trigger('parentmount');
+  }
+
+  function onParentMounted() {
+    this.trigger('parentmounted');
+  }
 
   View.prototype.unmount = function () {
     var self = this;
@@ -235,10 +278,16 @@
       return;
     }
 
+    if (self.parent) {
+      self.parent.off('mount', onParentMount, self);
+      self.parent.off('mounted', onParentMounted, self);
+    }
+
     batchAnimationFrame(function () {
       self.trigger('unmount');
       self.$root.removeChild($el);
       self.$root = null;
+      self.parent = null;
       self.trigger('unmounted');
     });
   };
@@ -277,7 +326,7 @@
     });
   };
 
-  View.prototype.setOptions = function (options) {
+  View.prototype.setOptions = function (options, skipData) {
     if (!options) {
       return;
     }
@@ -286,6 +335,20 @@
     for (key in options) {
       if (key === 'attrs') {
         this.setAttributes(options.attrs);
+      } else if (key === 'attr') {
+        this.setAttributes(options.attr);
+      } else if (key === 'href') {
+        this.setAttributes({
+          href: options.href
+        });
+      } else if (key === 'id') {
+        this.setAttributes({
+          id: options.id
+        });
+      } else if (key === 'data') {
+        if (!skipData) {
+          this.set(options.data);
+        }
       } else if (key === 'style') {
         if (typeof options.style === 'string') {
           this.setAttributes({
@@ -310,6 +373,10 @@
         this.on('init', options.init);
       } else if (key === 'update') {
         this.on('update', options.update);
+      } else if (key === 'parent') {
+        this.mount(options.parent);
+      } else if (key === '$root') {
+        this.mount(options.$root);
       } else {
         this[key] = options[key];
       }
@@ -396,6 +463,12 @@
     }
   };
 
+  View.prototype.setAttribute = function (attr, value) {
+    var data = {};
+    data[attr] = value;
+    this.setAttributes(data);
+  };
+
   View.prototype.setAttributes = function (attrs) {
     var self = this;
     var $el = self.$el;
@@ -416,22 +489,37 @@
     function setAttribute(attr, value) {
       batchAnimationFrame(function () {
         if (value === self.attrs[attr]) {
-          if (!value) {
+          if (value === false || value == null) {
             $el.removeAttribute(attr);
             return;
           }
           $el.setAttribute(attr, value);
 
           if (attr === 'autofocus') {
-            $el.focus();
+            if (value) {
+              $el.focus();
+              self.on('mounted', onAutofocus);
+              self.on('parentmounted', onAutofocus, self);
+            } else {
+              self.off('mounted', onAutofocus);
+              self.off('parentmounted', onAutofocus, self);
+            }
           }
         }
       });
     }
   };
 
-  function Views(ChildView, type, options) {
-    this.view = new View(type, options);
+  function onAutofocus() {
+    this.$el.focus();
+  }
+
+  function Views(ChildView, options) {
+    var isViews = this instanceof Views;
+    if (!isViews) {
+      return new Views(ChildView, options);
+    }
+    this.view = new View(options);
     this.views = [];
     this.lookup = {};
     this.ChildView = ChildView || View;
@@ -524,9 +612,9 @@
 
   function title(root, target) {
     // h1
-    var view = new View('h1', { textContent: 'Todo' });
+    var view = new View({ el: 'h1', textContent: 'Todo' });
     // p
-    var notice = new View('p', { textContent: '(items stay between refreshes)', style: {
+    var notice = new View({ el: 'p', textContent: '(items stay between refreshes)', style: {
         fontStyle: 'italic'
       } });
 
@@ -543,25 +631,49 @@
 
   function todocreate(root, target) {
     // Container
-    var view = new View('div', {
+    var view = new View({
+      el: 'div',
       'class': 'todo-create'
     });
 
     // Form
-    var form = new View('form', { listen: {
+    var form = new View({
+      el: 'form',
+      listen: {
         submit: createTodo
-      } });
+      }
+    });
 
     // elements
-    var title = new View('h2', { textContent: 'What to do?' });
-    var input = new View('input', { attrs: { autofocus: true, placeholder: whattodo[0] } });
-    var insertbutton = new View('button', { textContent: 'Insert' });
-    var clearbutton = new View('button', { textContent: 'Clear done', listen: {
+    var title = new View({
+      el: 'h2',
+      textContent: 'What to do?'
+    });
+    var input = new View({
+      el: 'input',
+      attrs: {
+        autofocus: true,
+        placeholder: whattodo[0]
+      }
+    });
+    var insertbutton = new View({
+      el: 'button',
+      textContent: 'Insert'
+    });
+    var clearbutton = new View({
+      el: 'button',
+      textContent: 'Clear done',
+      listen: {
         click: clearDone
-      } });
-    var clearallbutton = new View('button', { textContent: 'Clear all', listen: {
+      }
+    });
+    var clearallbutton = new View({
+      el: 'button',
+      textContent: 'Clear all',
+      listen: {
         click: clearAll
-      } });
+      }
+    });
 
     // mount all
 
@@ -577,12 +689,15 @@
 
     function createTodo(e) {
       e.preventDefault();
-      root.trigger('todo-create', {
+      var newTodo = {
         id: Date.now(),
         title: input.$el.value || whattodo[0],
         done: false
-      });
+      };
+      root.trigger('todo-create', newTodo);
+
       input.$el.value = '';
+
       shuffle(whattodo);
       input.setAttributes({
         placeholder: whattodo[0]
@@ -602,7 +717,8 @@
   }
 
   // extend View
-  var TodoItem = View.extend('li', {
+  var TodoItem = View.extend({
+    el: 'li',
     'class': 'todoitem',
     listen: {
       click: switchDone
@@ -616,17 +732,18 @@
     var self = this;
 
     // checkbox + title
-    this.checkbox = new View('input', {
+    self.checkbox = new View({
+      el: 'input',
       attrs: {
         type: 'checkbox'
       },
       parent: self
     });
-    this.title = new View('span');
+    self.title = new View({ el: 'span' });
 
     // mount elements
-    this.checkbox.mount(this.$el);
-    this.title.mount(this.$el);
+    self.checkbox.mount(self.$el);
+    self.title.mount(self.$el);
   }
 
   // actions
@@ -648,7 +765,8 @@
 
   function todoitems$1(root, target) {
     // container
-    var view = new Views(TodoItem, 'ul', {
+    var view = new Views(TodoItem, {
+      el: 'ul',
       'class': 'todoitems',
       root: root
     });
