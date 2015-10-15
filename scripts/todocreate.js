@@ -8,60 +8,50 @@ var whattodo = ['Buy milk', 'Feed cat', 'Go fishing', 'Pay rent', 'Watch a movie
 shuffle(whattodo)
 
 export default function (root, target) {
-  // Container
-  var view = new View({
-    el: 'div',
-    class: 'todo-create'
-  })
-
   // Form
   var form = new View({
     el: 'form',
     listen: {
       submit: createTodo
-    }
+    },
+    $root: target
   })
 
   // elements
   var title = new View({
     el: 'h2',
-    textContent: 'What to do?'
+    text: 'What to do?',
+    parent: form
   })
   var input = new View({
     el: 'input',
-    attrs: {
+    attr: {
       autofocus: true,
       placeholder: whattodo[0]
-    }
+    },
+    parent: form
   })
   var insertbutton = new View({
     el: 'button',
-    textContent: 'Insert'
+    text: 'Insert',
+    parent: form
   })
   var clearbutton = new View({
     el: 'button',
-    textContent: 'Clear done',
+    text: 'Clear done',
     listen: {
       click: clearDone
-    }
+    },
+    $root: target
   })
   var clearallbutton = new View({
     el: 'button',
-    textContent: 'Clear all',
+    text: 'Clear all',
     listen: {
       click: clearAll
-    }
+    },
+    $root: target
   })
-
-  // mount all
-
-  form.mount(target)
-  view.mount(form.$el)
-  title.mount(form.$el)
-  input.mount(form.$el)
-  insertbutton.mount(form.$el)
-  clearbutton.mount(target)
-  clearallbutton.mount(target)
 
   // actions
 
@@ -77,7 +67,7 @@ export default function (root, target) {
     input.$el.value = ''
 
     shuffle(whattodo)
-    input.setAttributes({
+    input.attr({
       placeholder: whattodo[0]
     })
     input.$el.focus()

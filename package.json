@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/pakastin/frzr#readme",
   "dependencies": {
-    "frzr": "^0.5.1"
+    "frzr": "^0.6.2"
   },
   "devDependencies": {
     "babel": "^5.8.23",

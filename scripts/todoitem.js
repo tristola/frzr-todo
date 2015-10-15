@@ -19,7 +19,7 @@ function init () {
   // checkbox + title
   self.checkbox = new View({
     el: 'input',
-    attrs: {
+    attr: {
       type: 'checkbox'
     },
     parent: self
@@ -34,13 +34,17 @@ function init () {
 // actions
 
 function switchDone () {
-  this.data.done = !this.data.done
-  this.parent.root.trigger('todo-update', this.data)
+  var self = this
+
+  self.data.done = !self.data.done
+  self.parent.root.trigger('todo-update', self.data)
 }
 
 function update (data) {
-  this.title.textContent(data.title)
-  this.checkbox.setAttributes({
+  var self = this
+
+  self.title.text(data.title)
+  self.checkbox.attr({
     checked: data.done
   })
 }
