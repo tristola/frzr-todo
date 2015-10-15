@@ -196,24 +196,31 @@
   }
 
   function View(options) {
-    var isView = this instanceof View;
+    var self = this;
+    var isView = self instanceof View;
+
     if (!isView) {
       return new View(options);
     }
     var svg = options && options.svg || false;
 
-    View['super'].call(this); // init Observable
+    View['super'].call(self); // init Observable
 
-    this.$el = svg ? SVGelement(options.el || 'svg') : element(options.el || 'div');
-    this.attrs = {};
-    this['class'] = {};
-    this.data = {};
-    this.style = {};
+    self.$el = svg ? SVGelement(options.el || 'svg') : element(options.el || 'div');
+    self.$root = null;
+    self.parent = null;
 
-    options && this.setOptions(options, true);
-    this.trigger('init', this);
-    options.data && this.set(options.data);
-    this.trigger('inited', this);
+    self.data = {};
+
+    self._attrs = {};
+    self._class = {};
+    self._style = {};
+    self._text = '';
+
+    options && self.opt(options, null, true);
+    self.trigger('init', self);
+    options.data && self.set(options.data);
+    self.trigger('inited', self);
   }
 
   inherits(View, Observable);
@@ -242,6 +249,11 @@
       // If already have parent, remove parent listeners first
       self.parent.off('mount', onParentMount, self);
       self.parent.off('mounted', onParentMounted, self);
+    }
+
+    if (self.$root) {
+      self.trigger('unmount');
+      self.trigger('unmounted');
     }
 
     if (target instanceof View) {
@@ -302,106 +314,164 @@
   };
 
   View.prototype.mountBefore = function (target, before) {
-    var $el = this.$el;
+    var self = this;
+    var $el = self.$el;
 
-    this.$root = target;
+    self.$root = target;
 
     batchAnimationFrame(function () {
       target.insertBefore($el, before);
     });
   };
 
-  View.prototype.set = function (data) {
+  View.prototype.set = function (key, value) {
     var self = this;
+    var data = {};
+
+    if (typeof key === 'string') {
+      data[key] = value;
+    } else if (key != null) {
+      data = key;
+    }
+
     batchAnimationFrame(function () {
       self.trigger('render');
     });
     self.trigger('update', data);
-    for (var key in data) {
+
+    for (key in data) {
       self.data[key] = data[key];
     }
+
     self.trigger('updated');
     batchAnimationFrame(function () {
       self.trigger('rendered');
     });
   };
 
-  View.prototype.setOptions = function (options, skipData) {
-    if (!options) {
+  View.prototype.opt = function (key, value, skipData) {
+    var self = this;
+    var options = {};
+
+    if (typeof key === 'undefined') {
       return;
     }
-    var key;
+
+    if (typeof key === 'string') {
+      options[key] = value;
+    } else if (key != null) {
+      options = key;
+    }
 
     for (key in options) {
       if (key === 'attrs') {
-        this.setAttributes(options.attrs);
+        console.error('DEPRECATED! Please use "attr" instead..');
+        self.attr(options.attrs);
       } else if (key === 'attr') {
-        this.setAttributes(options.attr);
+        self.attr(options.attr);
       } else if (key === 'href') {
-        this.setAttributes({
+        self.attr({
           href: options.href
         });
       } else if (key === 'id') {
-        this.setAttributes({
+        self.attr({
           id: options.id
         });
       } else if (key === 'data') {
         if (!skipData) {
-          this.set(options.data);
+          self.set(options.data);
         }
       } else if (key === 'style') {
         if (typeof options.style === 'string') {
-          this.setAttributes({
+          self.attr({
             style: options.style
           });
           continue;
         }
-        this.setStyle(options.style);
+        self.style(options.style);
       } else if (key === 'class') {
         if (typeof options['class'] === 'string') {
-          this.setAttributes({
+          self.attr({
             'class': options['class']
           });
           continue;
         }
-        this.setClass(options['class']);
+        self['class'](options['class']);
       } else if (key === 'textContent') {
-        this.textContent(options.textContent);
+        console.error('DEPRECATED! Please use "text" instead..');
+        self.text(options.textContent);
+      } else if (key === 'text') {
+        self.text(options.text);
       } else if (key === 'listen') {
-        this.addListeners(options.listen);
+        self.listen(options.listen);
       } else if (key === 'init') {
-        this.on('init', options.init);
+        self.on('init', options.init);
       } else if (key === 'update') {
-        this.on('update', options.update);
+        self.on('update', options.update);
       } else if (key === 'parent') {
-        this.mount(options.parent);
+        self.mount(options.parent);
       } else if (key === '$root') {
-        this.mount(options.$root);
+        self.mount(options.$root);
       } else {
-        this[key] = options[key];
+        self[key] = options[key];
       }
     }
   };
 
-  View.prototype.textContent = function (text) {
+  View.prototype.addListeners = function (key, value) {
+    console.error('DEPRECATED! Please use .listen instead..');
+    this.listen(key, value);
+  };
+
+  View.prototype.textContent = function (key, value) {
+    console.error('DEPRECATED! Please use .text instead..');
+    this.text(key, value);
+  };
+
+  View.prototype.setOptions = function (key, value) {
+    console.error('DEPRECATED! Please use .opt instead..');
+    this.opt(key, value);
+  };
+
+  View.prototype.setAttributes = function (key, value) {
+    console.error('DEPRECATED! Please use .attr instead..');
+    this.attr(key, value);
+  };
+
+  View.prototype.setClass = function (key, value) {
+    console.error('DEPRECATED! Please use .class instead..');
+    this['class'](key, value);
+  };
+
+  View.prototype.setStyle = function (key, value) {
+    console.error('DEPRECATED! Please use .style instead..');
+    this.style(key, value);
+  };
+
+  View.prototype.text = function (text) {
     var self = this;
     var $el = self.$el;
 
-    if (text !== self.text) {
-      self.text = text;
+    if (text !== self._text) {
+      self._text = text;
 
       batchAnimationFrame(function () {
-        if (text === self.text) {
+        if (text === self._text) {
           $el.textContent = text;
         }
       });
     }
   };
 
-  View.prototype.addListeners = function (listeners) {
+  View.prototype.listen = function (key, value) {
     var self = this;
     var $el = self.$el;
-    var key, value;
+    var listeners = {};
+    if (typeof key === 'string') {
+      listeners[key] = value;
+    } else if (key != null) {
+      listeners = key;
+    }
 
     for (key in listeners) {
       value = listeners[key];
@@ -415,22 +485,28 @@
     }
   };
 
-  View.prototype.setClass = function (classes) {
+  View.prototype['class'] = function (key, value) {
     var self = this;
     var $el = self.$el;
-    var key, value;
+    var classes = {};
+
+    if (typeof key === 'string') {
+      classes[key] = value;
+    } else if (key != null) {
+      classes = key;
+    }
 
     for (key in classes) {
       value = classes[key];
-      if (self['class'][key] !== value) {
-        self['class'][key] = value;
+      if (self._class[key] !== value) {
+        self._class[key] = value;
         setClass(key, value);
       }
     }
 
     function setClass(key, value) {
       batchAnimationFrame(function () {
-        if (self['class'][key] === value) {
+        if (self._class[key] === value) {
           if (value) {
             $el.classList.add(key);
           } else {
@@ -441,54 +517,60 @@
     }
   };
 
-  View.prototype.setStyle = function (style) {
+  View.prototype.style = function (key, value) {
     var self = this;
     var $el = self.$el;
-    var key, value;
+    var style = {};
+    if (typeof key === 'string') {
+      style[key] = value;
+    } else if (key != null) {
+      style = key;
+    }
 
     for (key in style) {
       value = style[key];
-      if (self.style[key] !== value) {
-        self.style[key] = value;
+      if (self._style[key] !== value) {
+        self._style[key] = value;
         setStyle(key, value);
       }
     }
 
     function setStyle(key, value) {
       batchAnimationFrame(function () {
-        if (self.style[key] === style[key]) {
+        if (self._style[key] === style[key]) {
           $el.style[key] = value;
         }
       });
     }
   };
 
-  View.prototype.setAttribute = function (attr, value) {
-    var data = {};
-    data[attr] = value;
-    this.setAttributes(data);
-  };
-
-  View.prototype.setAttributes = function (attrs) {
+  View.prototype.attr = function (key, value) {
     var self = this;
     var $el = self.$el;
-    var currentAttrs = self.attrs;
-    var value, attr;
+    var currentAttrs = self._attrs;
+    var attrs = {};
+    var attr;
+
+    if (typeof key === 'string') {
+      attrs[key] = value;
+    } else if (key != null) {
+      attrs = key;
+    }
 
     for (attr in attrs) {
       value = attrs[attr];
       if (value !== currentAttrs[attr]) {
-        self.attrs[attr] = value;
+        self._attrs[attr] = value;
 
-        if (value === self.attrs[attr]) {
-          setAttribute(attr, value);
+        if (value === self._attrs[attr]) {
+          setAttr(attr, value);
         }
       }
     }
 
-    function setAttribute(attr, value) {
+    function setAttr(attr, value) {
       batchAnimationFrame(function () {
-        if (value === self.attrs[attr]) {
+        if (value === self._attrs[attr]) {
           if (value === false || value == null) {
             $el.removeAttribute(attr);
             return;
@@ -552,7 +634,7 @@
       var view = currentLookup[id_or_i];
 
       if (!view) {
-        view = new ChildView(null, { parent: self.view });
+        view = new ChildView({ parent: self.view });
       }
       lookup[id_or_i] = view;
       view.set(item);
@@ -612,9 +694,9 @@
 
   function title(root, target) {
     // h1
-    var view = new View({ el: 'h1', textContent: 'Todo' });
+    var view = new View({ el: 'h1', text: 'Todo' });
     // p
-    var notice = new View({ el: 'p', textContent: '(items stay between refreshes)', style: {
+    var notice = new View({ el: 'p', text: '(items stay between refreshes)', style: {
         fontStyle: 'italic'
       } });
 
@@ -630,60 +712,50 @@
   shuffle(whattodo);
 
   function todocreate(root, target) {
-    // Container
-    var view = new View({
-      el: 'div',
-      'class': 'todo-create'
-    });
-
     // Form
     var form = new View({
       el: 'form',
       listen: {
         submit: createTodo
-      }
+      },
+      $root: target
     });
 
     // elements
     var title = new View({
       el: 'h2',
-      textContent: 'What to do?'
+      text: 'What to do?',
+      parent: form
     });
     var input = new View({
       el: 'input',
-      attrs: {
+      attr: {
         autofocus: true,
         placeholder: whattodo[0]
-      }
+      },
+      parent: form
     });
     var insertbutton = new View({
       el: 'button',
-      textContent: 'Insert'
+      text: 'Insert',
+      parent: form
     });
     var clearbutton = new View({
       el: 'button',
-      textContent: 'Clear done',
+      text: 'Clear done',
       listen: {
         click: clearDone
-      }
+      },
+      $root: target
     });
     var clearallbutton = new View({
       el: 'button',
-      textContent: 'Clear all',
+      text: 'Clear all',
       listen: {
         click: clearAll
-      }
+      },
+      $root: target
     });
-
-    // mount all
-
-    form.mount(target);
-    view.mount(form.$el);
-    title.mount(form.$el);
-    input.mount(form.$el);
-    insertbutton.mount(form.$el);
-    clearbutton.mount(target);
-    clearallbutton.mount(target);
 
     // actions
 
@@ -699,7 +771,7 @@
       input.$el.value = '';
 
       shuffle(whattodo);
-      input.setAttributes({
+      input.attr({
         placeholder: whattodo[0]
       });
       input.$el.focus();
@@ -734,7 +806,7 @@
     // checkbox + title
     self.checkbox = new View({
       el: 'input',
-      attrs: {
+      attr: {
         type: 'checkbox'
       },
       parent: self
@@ -749,13 +821,17 @@
   // actions
 
   function switchDone() {
-    this.data.done = !this.data.done;
-    this.parent.root.trigger('todo-update', this.data);
+    var self = this;
+
+    self.data.done = !self.data.done;
+    self.parent.root.trigger('todo-update', self.data);
   }
 
   function update(data) {
-    this.title.textContent(data.title);
-    this.checkbox.setAttributes({
+    var self = this;
+
+    self.title.text(data.title);
+    self.checkbox.attr({
       checked: data.done
     });
   }
