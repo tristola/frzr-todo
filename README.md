@@ -17,7 +17,7 @@ npm install
 ```
 
 ## run
-All files will appear in ```/public``` folder after install, just open ```/public/index.html``` in browser
+npm run serve
 
 ## watch mode
 Will rebuild CSS, JS and HTML when they change, run:
